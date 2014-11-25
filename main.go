@@ -7,6 +7,14 @@ import (
 	"os"
 )
 
+var EncryptionTypes = map[string]int{
+	"SHA2":     1,
+	"Rijndael": 2,
+	"AES":      2,
+	"ArcFour":  4,
+	"TwoFish":  8,
+}
+
 type Metadata struct {
 	signature1 uint32
 	signature2 uint32
@@ -23,6 +31,7 @@ type Metadata struct {
 
 type KeepassXDatabase struct {
 	*Metadata
+	payload []byte
 }
 
 func NewKeepassXDatabase() (*KeepassXDatabase, error) {
@@ -31,59 +40,81 @@ func NewKeepassXDatabase() (*KeepassXDatabase, error) {
 	}, nil
 }
 
-func (k *KeepassXDatabase) ReadFrom(r io.Reader) (int64, error) {
+func (m *Metadata) ReadFrom(r io.Reader) (int64, error) {
 	var buf [4]byte
 	uint32Bytes := buf[:4]
 
 	n, err := io.ReadFull(r, uint32Bytes)
 	n64 := int64(n)
-	k.signature1 = binary.LittleEndian.Uint32(uint32Bytes)
+	m.signature1 = binary.LittleEndian.Uint32(uint32Bytes)
 
 	n, err = io.ReadFull(r, uint32Bytes)
 	n64 += int64(n)
-	k.signature2 = binary.LittleEndian.Uint32(uint32Bytes)
+	m.signature2 = binary.LittleEndian.Uint32(uint32Bytes)
 
 	n, err = io.ReadFull(r, uint32Bytes)
 	n64 += int64(n)
-	k.flags = binary.LittleEndian.Uint32(uint32Bytes)
+	m.flags = binary.LittleEndian.Uint32(uint32Bytes)
 
 	n, err = io.ReadFull(r, uint32Bytes)
 	n64 += int64(n)
-	k.version = binary.LittleEndian.Uint32(uint32Bytes)
+	m.version = binary.LittleEndian.Uint32(uint32Bytes)
 
 	var seed [16]byte
 	n, err = io.ReadFull(r, seed[:])
 	n64 += int64(n)
-	k.seed = seed
+	m.seed = seed
 
 	var encryption [16]byte
 	n, err = io.ReadFull(r, encryption[:])
 	n64 += int64(n)
-	k.encryption = encryption
+	m.encryption = encryption
 
 	n, err = io.ReadFull(r, uint32Bytes)
 	n64 += int64(n)
-	k.groups = binary.LittleEndian.Uint32(uint32Bytes)
+	m.groups = binary.LittleEndian.Uint32(uint32Bytes)
 
 	n, err = io.ReadFull(r, uint32Bytes)
 	n64 += int64(n)
-	k.entries = binary.LittleEndian.Uint32(uint32Bytes)
+	m.entries = binary.LittleEndian.Uint32(uint32Bytes)
 
 	var hash [32]byte
 	n, err = io.ReadFull(r, hash[:])
 	n64 += int64(n)
-	k.hash = hash
+	m.hash = hash
 
 	var seed2 [32]byte
 	n, err = io.ReadFull(r, seed2[:])
 	n64 += int64(n)
-	k.seed2 = seed2
+	m.seed2 = seed2
 
 	n, err = io.ReadFull(r, uint32Bytes)
 	n64 += int64(n)
-	k.rounds = binary.LittleEndian.Uint32(uint32Bytes)
+	m.rounds = binary.LittleEndian.Uint32(uint32Bytes)
 
 	return n64, err
+}
+
+func (k *KeepassXDatabase) decryptPayload(payload []byte, seed [16]byte, seed2 [32]byte, rounds uint32, flags uint32, encryption [16]byte) ([]byte, error) {
+	var err error
+	var data []byte
+	return data, err
+}
+
+func (k *KeepassXDatabase) parsePayload(payload []byte) error {
+	return nil
+}
+
+func (k *KeepassXDatabase) ReadFrom(r io.Reader) (int64, error) {
+	n, err := k.Metadata.ReadFrom(r)
+	if err != nil {
+		return n, err
+	}
+	var content []byte
+	_, err = io.ReadFull(r, content[:])
+	payload, err := k.decryptPayload(content, k.seed, k.seed2, k.rounds, k.flags, k.encryption)
+	err = k.parsePayload(payload)
+	return n, err
 }
 
 func main() {
