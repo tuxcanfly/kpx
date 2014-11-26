@@ -95,7 +95,7 @@ func (m *Metadata) ReadFrom(r io.Reader) (int64, error) {
 	return n64, err
 }
 
-func (k *KeepassXDatabase) decryptPayload(payload []byte, seed [16]byte, seed2 [32]byte, rounds uint32, flags uint32, encryption [16]byte) ([]byte, error) {
+func (k *KeepassXDatabase) decryptPayload(content []byte, seed [16]byte, seed2 [32]byte, rounds uint32, flags uint32, encryption [16]byte) ([]byte, error) {
 	var err error
 	var data []byte
 	return data, err
