@@ -2,6 +2,7 @@ package main
 
 import (
 	"crypto/aes"
+	"crypto/cipher"
 	"crypto/sha256"
 	"encoding/binary"
 	"errors"
@@ -119,18 +120,30 @@ func (k *KeepassXDatabase) decryptPayload(content []byte, key []byte,
 	if encryption_type != "Rijndael" {
 		return data, errors.New(fmt.Sprintf("Unsupported encryption type: %s", encryption_type))
 	}
+	decryptor, err := aes.NewCipher(key)
+	if err != nil {
+		return data, err
+	}
+	mode := cipher.NewCBCDecrypter(decryptor, iv[:])
+	mode.CryptBlocks(content, data)
 	return data, err
 }
 
-func (k *KeepassXDatabase) calculateKey() []byte {
+func (k *KeepassXDatabase) calculateKey() ([]byte, error) {
 	// TODO: support keyfile
-	key := sha256.New()
-	key.Write([]byte(k.password))
-	_, err := aes.NewCipher(k.seed2[:])
+	hash := sha256.New()
+	hash.Write([]byte(k.password))
+	key := hash.Sum(nil)
+	cipher, err := aes.NewCipher(k.seed2[:])
 	if err != nil {
-		panic(err)
+		return key, err
 	}
-	return key.Sum(nil)
+	for i := 0; i < int(k.rounds); i++ {
+		cipher.Encrypt(key, key)
+	}
+	hash.Reset()
+	hash.Write(key)
+	return hash.Sum(nil), nil
 }
 
 func (k *KeepassXDatabase) parsePayload(payload []byte) error {
@@ -145,7 +158,10 @@ func (k *KeepassXDatabase) ReadFrom(r io.Reader) (int64, error) {
 	var content []byte
 	_, err = io.ReadFull(r, content[:])
 	encryption_type := getEncryptionFlag(k.flags)
-	key := k.calculateKey()
+	key, err := k.calculateKey()
+	if err != nil {
+		return n, err
+	}
 	payload, err := k.decryptPayload(content, key, encryption_type, k.iv)
 	err = k.parsePayload(payload)
 	return n, err
@@ -153,8 +169,13 @@ func (k *KeepassXDatabase) ReadFrom(r io.Reader) (int64, error) {
 
 func main() {
 	path := os.Args[1]
-	password := os.Args[2]
-	keyfile := os.Args[3]
+	var password, keyfile string
+	if len(os.Args) > 2 {
+		password = os.Args[2]
+	}
+	if len(os.Args) > 3 {
+		keyfile = os.Args[3]
+	}
 	f, err := os.OpenFile(path, os.O_RDONLY, 0)
 	if err != nil {
 		log.Fatalf("%v", err)
