@@ -11,7 +11,15 @@ import (
 	"io/ioutil"
 	"log"
 	"os"
+
+	"github.com/davecgh/go-spew/spew"
 )
+
+func Sha256(k []byte) []byte {
+	hash := sha256.New()
+	hash.Write(k)
+	return hash.Sum(nil)
+}
 
 var EncryptionTypes = map[string]uint32{
 	//"SHA2":     1,
@@ -125,25 +133,23 @@ func (k *KeepassXDatabase) decryptPayload(content []byte, key []byte,
 		return data, err
 	}
 	mode := cipher.NewCBCDecrypter(decryptor, iv[:])
-	mode.CryptBlocks(content, data)
+	mode.CryptBlocks(data, content)
 	return data, err
 }
 
 func (k *KeepassXDatabase) calculateKey() ([]byte, error) {
 	// TODO: support keyfile
-	hash := sha256.New()
-	hash.Write([]byte(k.password))
-	key := hash.Sum(nil)
+	key := Sha256([]byte(k.password))
 	cipher, err := aes.NewCipher(k.seed2[:])
 	if err != nil {
 		return key, err
 	}
 	for i := 0; i < int(k.rounds); i++ {
-		cipher.Encrypt(key, key)
+		cipher.Encrypt(key[:16], key[:16])
+		cipher.Encrypt(key[16:], key[16:])
 	}
-	hash.Reset()
-	hash.Write(key)
-	return hash.Sum(nil), nil
+	key = Sha256(key)
+	return Sha256(append(k.seed[:], key...)), nil
 }
 
 func (k *KeepassXDatabase) parsePayload(payload []byte) error {
@@ -168,6 +174,7 @@ func (k *KeepassXDatabase) ReadFrom(r io.Reader) (int64, error) {
 	if err != nil {
 		return n, err
 	}
+	spew.Dump(payload)
 	err = k.parsePayload(payload)
 	if err != nil {
 		return n, err
