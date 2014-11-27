@@ -8,14 +8,15 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"io/ioutil"
 	"log"
 	"os"
 )
 
 var EncryptionTypes = map[string]uint32{
 	//"SHA2":     1,
+	//"AES":      2,
 	"Rijndael": 2,
-	"AES":      2,
 	"ArcFour":  4,
 	"TwoFish":  8,
 }
@@ -115,8 +116,7 @@ func getEncryptionFlag(flag uint32) string {
 
 func (k *KeepassXDatabase) decryptPayload(content []byte, key []byte,
 	encryption_type string, iv [16]byte) ([]byte, error) {
-	var err error
-	var data []byte
+	data := make([]byte, len(content))
 	if encryption_type != "Rijndael" {
 		return data, errors.New(fmt.Sprintf("Unsupported encryption type: %s", encryption_type))
 	}
@@ -155,15 +155,23 @@ func (k *KeepassXDatabase) ReadFrom(r io.Reader) (int64, error) {
 	if err != nil {
 		return n, err
 	}
-	var content []byte
-	_, err = io.ReadFull(r, content[:])
+	content, err := ioutil.ReadAll(r)
+	if err != nil {
+		return n, err
+	}
 	encryption_type := getEncryptionFlag(k.flags)
 	key, err := k.calculateKey()
 	if err != nil {
 		return n, err
 	}
 	payload, err := k.decryptPayload(content, key, encryption_type, k.iv)
+	if err != nil {
+		return n, err
+	}
 	err = k.parsePayload(payload)
+	if err != nil {
+		return n, err
+	}
 	return n, err
 }
 
