@@ -1,14 +1,18 @@
 package main
 
 import (
+	"crypto/aes"
+	"crypto/sha256"
 	"encoding/binary"
+	"errors"
+	"fmt"
 	"io"
 	"log"
 	"os"
 )
 
-var EncryptionTypes = map[string]int{
-	"SHA2":     1,
+var EncryptionTypes = map[string]uint32{
+	//"SHA2":     1,
 	"Rijndael": 2,
 	"AES":      2,
 	"ArcFour":  4,
@@ -21,7 +25,7 @@ type Metadata struct {
 	flags      uint32
 	version    uint32
 	seed       [16]byte
-	encryption [16]byte
+	iv         [16]byte
 	groups     uint32
 	entries    uint32
 	hash       [32]byte
@@ -31,12 +35,16 @@ type Metadata struct {
 
 type KeepassXDatabase struct {
 	*Metadata
-	payload []byte
+	password string
+	keyfile  string
+	payload  []byte
 }
 
-func NewKeepassXDatabase() (*KeepassXDatabase, error) {
+func NewKeepassXDatabase(password, keyfile string) (*KeepassXDatabase, error) {
 	return &KeepassXDatabase{
 		Metadata: new(Metadata),
+		password: password,
+		keyfile:  keyfile,
 	}, nil
 }
 
@@ -68,7 +76,7 @@ func (m *Metadata) ReadFrom(r io.Reader) (int64, error) {
 	var encryption [16]byte
 	n, err = io.ReadFull(r, encryption[:])
 	n64 += int64(n)
-	m.encryption = encryption
+	m.iv = encryption
 
 	n, err = io.ReadFull(r, uint32Bytes)
 	n64 += int64(n)
@@ -95,10 +103,34 @@ func (m *Metadata) ReadFrom(r io.Reader) (int64, error) {
 	return n64, err
 }
 
-func (k *KeepassXDatabase) decryptPayload(content []byte, seed [16]byte, seed2 [32]byte, rounds uint32, flags uint32, encryption [16]byte) ([]byte, error) {
+func getEncryptionFlag(flag uint32) string {
+	for k, v := range EncryptionTypes {
+		if v&flag != 0 {
+			return k
+		}
+	}
+	return ""
+}
+
+func (k *KeepassXDatabase) decryptPayload(content []byte, key []byte,
+	encryption_type string, iv [16]byte) ([]byte, error) {
 	var err error
 	var data []byte
+	if encryption_type != "Rijndael" {
+		return data, errors.New(fmt.Sprintf("Unsupported encryption type: %s", encryption_type))
+	}
 	return data, err
+}
+
+func (k *KeepassXDatabase) calculateKey() []byte {
+	// TODO: support keyfile
+	key := sha256.New()
+	key.Write([]byte(k.password))
+	_, err := aes.NewCipher(k.seed2[:])
+	if err != nil {
+		panic(err)
+	}
+	return key.Sum(nil)
 }
 
 func (k *KeepassXDatabase) parsePayload(payload []byte) error {
@@ -112,19 +144,23 @@ func (k *KeepassXDatabase) ReadFrom(r io.Reader) (int64, error) {
 	}
 	var content []byte
 	_, err = io.ReadFull(r, content[:])
-	payload, err := k.decryptPayload(content, k.seed, k.seed2, k.rounds, k.flags, k.encryption)
+	encryption_type := getEncryptionFlag(k.flags)
+	key := k.calculateKey()
+	payload, err := k.decryptPayload(content, key, encryption_type, k.iv)
 	err = k.parsePayload(payload)
 	return n, err
 }
 
 func main() {
 	path := os.Args[1]
+	password := os.Args[2]
+	keyfile := os.Args[3]
 	f, err := os.OpenFile(path, os.O_RDONLY, 0)
 	if err != nil {
 		log.Fatalf("%v", err)
 	}
 	defer f.Close()
-	db, err := NewKeepassXDatabase()
+	db, err := NewKeepassXDatabase(password, keyfile)
 	if err != nil {
 		log.Fatalf("%v", err)
 	}
