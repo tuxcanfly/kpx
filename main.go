@@ -29,6 +29,15 @@ var EncryptionTypes = map[string]uint32{
 	"TwoFish":  8,
 }
 
+type Group struct {
+	ignored bool
+	id      uint32
+	name    string
+	imageid uint32
+	level   uint8
+	flags   uint32
+}
+
 type Metadata struct {
 	signature1 uint32
 	signature2 uint32
@@ -153,7 +162,14 @@ func (k *KeepassXDatabase) calculateKey() ([]byte, error) {
 }
 
 func (k *KeepassXDatabase) parsePayload(payload []byte) error {
-	return nil
+	groups, err := k.parseGroups(payload)
+	spew.Dump(groups)
+	return err
+}
+
+func (k *KeepassXDatabase) parseGroups(payload []byte) ([]Group, error) {
+	groups := make([]Group, 0)
+	return groups, nil
 }
 
 func (k *KeepassXDatabase) ReadFrom(r io.Reader) (int64, error) {
