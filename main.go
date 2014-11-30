@@ -29,12 +29,34 @@ var EncryptionTypes = map[string]uint32{
 	"TwoFish":  8,
 }
 
+type Grouper interface {
+	Decode(payload []byte) (interface{}, error)
+}
+
+type StringType struct{}
+
+func (s StringType) Decode(payload []byte) (interface{}, error) {
+	return string(payload), nil
+}
+
+type IntegerType struct{}
+
+func (i IntegerType) Decode(payload []byte) (interface{}, error) {
+	return binary.LittleEndian.Uint32(payload), nil
+}
+
+type ShortType struct{}
+
+func (s ShortType) Decode(payload []byte) (interface{}, error) {
+	return binary.LittleEndian.Uint16(payload), nil
+}
+
 type Group struct {
 	ignored bool
 	id      uint32
 	name    string
 	imageid uint32
-	level   uint8
+	level   uint16
 	flags   uint32
 }
 
@@ -168,7 +190,68 @@ func (k *KeepassXDatabase) parsePayload(payload []byte) error {
 }
 
 func (k *KeepassXDatabase) parseGroups(payload []byte) ([]Group, error) {
-	groups := make([]Group, 0)
+	offset := 0
+	var groups []Group
+	for i := 0; i < int(k.groups); i++ {
+		var g Group
+	out:
+		for {
+			field_type := binary.LittleEndian.Uint16(payload[offset : offset+2])
+			offset += 2
+			field_size := int(binary.LittleEndian.Uint32(payload[offset : offset+4]))
+			offset += 4
+			switch field_type {
+			case 1:
+				s := IntegerType{}
+				data := payload[offset : offset+field_size]
+				offset += field_size
+				i, err := s.Decode(data)
+				if err != nil {
+					return groups, err
+				}
+				g.id = i.(uint32)
+			case 2:
+				s := StringType{}
+				data := payload[offset : offset+field_size]
+				offset += field_size
+				i, err := s.Decode(data)
+				if err != nil {
+					return groups, err
+				}
+				g.name = i.(string)
+			case 7:
+				s := IntegerType{}
+				data := payload[offset : offset+field_size]
+				offset += field_size
+				i, err := s.Decode(data)
+				if err != nil {
+					return groups, err
+				}
+				g.imageid = i.(uint32)
+			case 8:
+				s := ShortType{}
+				data := payload[offset : offset+field_size]
+				offset += field_size
+				i, err := s.Decode(data)
+				if err != nil {
+					return groups, err
+				}
+				g.level = i.(uint16)
+			case 9:
+				s := IntegerType{}
+				data := payload[offset : offset+field_size]
+				offset += field_size
+				i, err := s.Decode(data)
+				if err != nil {
+					return groups, err
+				}
+				g.flags = i.(uint32)
+			case 65535:
+				break out
+			}
+		}
+		groups = append(groups, g)
+	}
 	return groups, nil
 }
 
