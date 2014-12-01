@@ -11,6 +11,7 @@ import (
 	"io/ioutil"
 	"log"
 	"os"
+	"strings"
 
 	"github.com/davecgh/go-spew/spew"
 )
@@ -36,7 +37,7 @@ type Grouper interface {
 type StringType struct{}
 
 func (s StringType) Decode(payload []byte) (interface{}, error) {
-	return string(payload), nil
+	return strings.TrimRight(string(payload[:]), "\x00"), nil
 }
 
 type IntegerType struct{}
