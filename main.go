@@ -12,6 +12,7 @@ import (
 	"log"
 	"os"
 	"strings"
+	"time"
 
 	"github.com/davecgh/go-spew/spew"
 )
@@ -59,6 +60,25 @@ type Group struct {
 	imageid uint32
 	level   uint16
 	flags   uint32
+}
+
+type Entry struct {
+	ignored         bool
+	id              uint32
+	groupid         uint32
+	imageid         uint32
+	title           string
+	url             string
+	username        string
+	password        string
+	notes           string
+	creation_time   time.Time
+	last_mod_time   time.Time
+	last_acc_time   time.Time
+	expiration_time time.Time
+	binary_desc     []byte
+	binary_data     []byte
+	group           Group
 }
 
 type Metadata struct {
@@ -187,7 +207,14 @@ func (k *KeepassXDatabase) calculateKey() ([]byte, error) {
 func (k *KeepassXDatabase) parsePayload(payload []byte) error {
 	groups, err := k.parseGroups(payload)
 	spew.Dump(groups)
+	entries, err := k.parseEntries(payload)
+	spew.Dump(entries)
 	return err
+}
+
+func (k *KeepassXDatabase) parseEntries(payload []byte) ([]Entry, error) {
+	var entries []Entry
+	return entries, nil
 }
 
 func (k *KeepassXDatabase) parseGroups(payload []byte) ([]Group, error) {
