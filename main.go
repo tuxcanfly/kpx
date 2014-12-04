@@ -17,6 +17,8 @@ import (
 	"github.com/davecgh/go-spew/spew"
 )
 
+const SYS_USR_ID = uint32(0)
+
 func Sha256(k []byte) []byte {
 	hash := sha256.New()
 	hash.Write(k)
@@ -251,9 +253,9 @@ func (k *KeepassXDatabase) calculateKey() ([]byte, error) {
 }
 
 func (k *KeepassXDatabase) parsePayload(payload []byte) error {
-	groups, err := k.parseGroups(payload)
+	groups, offset, err := k.parseGroups(payload)
 	spew.Dump(groups)
-	entries, err := k.parseEntries(payload)
+	entries, err := k.parseEntries(payload[offset:])
 	spew.Dump(entries)
 	return err
 }
@@ -379,12 +381,14 @@ func (k *KeepassXDatabase) parseEntries(payload []byte) ([]Entry, error) {
 				break out
 			}
 		}
-		entries = append(entries, e)
+		if e.id != SYS_USR_ID {
+			entries = append(entries, e)
+		}
 	}
 	return entries, nil
 }
 
-func (k *KeepassXDatabase) parseGroups(payload []byte) ([]Group, error) {
+func (k *KeepassXDatabase) parseGroups(payload []byte) ([]Group, int, error) {
 	offset := 0
 	var groups []Group
 	for i := 0; i < int(k.groups); i++ {
@@ -402,7 +406,7 @@ func (k *KeepassXDatabase) parseGroups(payload []byte) ([]Group, error) {
 				offset += field_size
 				i, err := s.Decode(data)
 				if err != nil {
-					return groups, err
+					return groups, offset, err
 				}
 				g.id = i.(uint32)
 			case 0x2:
@@ -411,7 +415,7 @@ func (k *KeepassXDatabase) parseGroups(payload []byte) ([]Group, error) {
 				offset += field_size
 				i, err := s.Decode(data)
 				if err != nil {
-					return groups, err
+					return groups, offset, err
 				}
 				g.name = i.(string)
 			case 0x7:
@@ -420,7 +424,7 @@ func (k *KeepassXDatabase) parseGroups(payload []byte) ([]Group, error) {
 				offset += field_size
 				i, err := s.Decode(data)
 				if err != nil {
-					return groups, err
+					return groups, offset, err
 				}
 				g.imageid = i.(uint32)
 			case 0x8:
@@ -429,7 +433,7 @@ func (k *KeepassXDatabase) parseGroups(payload []byte) ([]Group, error) {
 				offset += field_size
 				i, err := s.Decode(data)
 				if err != nil {
-					return groups, err
+					return groups, offset, err
 				}
 				g.level = i.(uint16)
 			case 0x9:
@@ -438,7 +442,7 @@ func (k *KeepassXDatabase) parseGroups(payload []byte) ([]Group, error) {
 				offset += field_size
 				i, err := s.Decode(data)
 				if err != nil {
-					return groups, err
+					return groups, offset, err
 				}
 				g.flags = i.(uint32)
 			case 0xffff:
@@ -447,7 +451,7 @@ func (k *KeepassXDatabase) parseGroups(payload []byte) ([]Group, error) {
 		}
 		groups = append(groups, g)
 	}
-	return groups, nil
+	return groups, offset, nil
 }
 
 func (k *KeepassXDatabase) ReadFrom(r io.Reader) (int64, error) {
