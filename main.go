@@ -26,6 +26,7 @@ func Sha256(k []byte) []byte {
 }
 
 var EncryptionTypes = map[string]uint32{
+	// TODO: Support these
 	//"SHA2":     1,
 	//"AES":      2,
 	"Rijndael": 2,
