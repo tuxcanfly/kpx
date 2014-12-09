@@ -127,7 +127,7 @@ type Entry struct {
 	expiration_time time.Time
 	binary_desc     string
 	binary_data     []byte
-	group           Group
+	group           *Group
 }
 
 type Metadata struct {
@@ -149,6 +149,7 @@ type KeepassXDatabase struct {
 	password string
 	keyfile  string
 	payload  []byte
+	groupIdx map[uint32]*Group
 }
 
 func NewKeepassXDatabase(password, keyfile string) (*KeepassXDatabase, error) {
@@ -156,6 +157,7 @@ func NewKeepassXDatabase(password, keyfile string) (*KeepassXDatabase, error) {
 		Metadata: new(Metadata),
 		password: password,
 		keyfile:  keyfile,
+		groupIdx: make(map[uint32]*Group),
 	}, nil
 }
 
@@ -256,9 +258,20 @@ func (k *KeepassXDatabase) calculateKey() ([]byte, error) {
 func (k *KeepassXDatabase) parsePayload(payload []byte) error {
 	groups, offset, err := k.parseGroups(payload)
 	spew.Dump(groups)
+	for i := 0; i < len(groups); i++ {
+		k.groupIdx[groups[i].id] = &groups[i]
+	}
 	entries, err := k.parseEntries(payload[offset:])
 	spew.Dump(entries)
 	return err
+}
+
+func (k *KeepassXDatabase) getGroup(id uint32) (*Group, error) {
+	g, ok := k.groupIdx[id]
+	if ok {
+		return g, nil
+	}
+	return nil, errors.New("group not found")
 }
 
 func (k *KeepassXDatabase) parseEntries(payload []byte) ([]Entry, error) {
@@ -291,6 +304,8 @@ func (k *KeepassXDatabase) parseEntries(payload []byte) ([]Entry, error) {
 					return entries, err
 				}
 				e.groupid = i.(uint32)
+				group, err := k.getGroup(e.groupid)
+				e.group = group
 			case 0x3:
 				s := IntegerType{}
 				data := payload[offset : offset+field_size]
