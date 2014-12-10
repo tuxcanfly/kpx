@@ -305,6 +305,9 @@ func (k *KeepassXDatabase) parseEntries(payload []byte) ([]Entry, error) {
 				}
 				e.groupid = i.(uint32)
 				group, err := k.getGroup(e.groupid)
+				if err != nil {
+					group = nil
+				}
 				e.group = group
 			case 0x3:
 				s := IntegerType{}
