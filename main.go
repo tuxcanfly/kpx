@@ -71,35 +71,13 @@ func (u UUIDType) Decode(payload []byte) (interface{}, error) {
 type DateType struct{}
 
 func (d DateType) Decode(payload []byte) (interface{}, error) {
-	// Little endian 5 unsigned chars.
-	// Based off of keepassx 0.4.3 source:
-	// Kdb3Database.cpp: Kdb3Database::dateFromPackedStruct5
-	//uchar = struct.unpack('<5B', payload)
-	//year = (uchar[0] << 6) | (uchar[1] >> 2)
-	//month = ((uchar[1] & 0x00000003) << 2) | (uchar[2] >> 6)
-	//day = (uchar[2] >> 1) & 0x0000001F
-	//hour = ((uchar[2] & 0x00000001) << 4) | (uchar[3] >> 4)
-	//minutes = ((uchar[3] & 0x0000000F) << 2) | (uchar[4] >> 6)
-	//seconds = uchar[4] & 0x0000003F
-	//return datetime.datetime(year, month, day, hour, minutes, seconds)
-
-	//quint32 dw1, dw2, dw3, dw4, dw5;
-	//dw1 = (quint32)pBytes[0]; dw2 = (quint32)pBytes[1]; dw3 = (quint32)pBytes[2];
-	//dw4 = (quint32)pBytes[3]; dw5 = (quint32)pBytes[4];
-	//int y = (dw1 << 6) | (dw2 >> 2);
-	//int mon = ((dw2 & 0x00000003) << 2) | (dw3 >> 6);
-	//int d = (dw3 >> 1) & 0x0000001F;
-	//int h = ((dw3 & 0x00000001) << 4) | (dw4 >> 4);
-	//int min = ((dw4 & 0x0000000F) << 2) | (dw5 >> 6);
-	//int s = dw5 & 0x0000003F;
-	//return QDateTime(QDate(y,mon,d),QTime(h,min,s));
-	dw1 := binary.LittleEndian.Uint64(payload[0:8])
-	_ = binary.LittleEndian.Uint64(payload[8:16])
-	_ = binary.LittleEndian.Uint64(payload[16:24])
-	_ = binary.LittleEndian.Uint64(payload[24:32])
-	_ = binary.LittleEndian.Uint64(payload[32:40])
-	spew.Dump(dw1)
-	return time.Now(), nil
+	year := int((uint16(payload[0]) << 6) | (uint16(payload[1]) >> 2))
+	month := int(((payload[1] & 0x00000003) << 2) | (payload[2] >> 6))
+	day := int((payload[2] >> 1) & 0x0000001F)
+	hour := int(((payload[2] & 0x00000001) << 4) | (payload[3] >> 4))
+	minutes := int(((payload[3] & 0x0000000F) << 2) | (payload[4] >> 6))
+	seconds := int(payload[4] & 0x0000003F)
+	return time.Date(year, time.Month(month), day, hour, minutes, seconds, 0, time.UTC), nil
 }
 
 type Group struct {
@@ -373,11 +351,32 @@ func (k *KeepassXDatabase) parseEntries(payload []byte) ([]Entry, error) {
 				}
 				e.creation_time = i.(time.Time)
 			case 0xa:
+				d := DateType{}
+				data := payload[offset : offset+field_size]
 				offset += field_size
+				i, err := d.Decode(data)
+				if err != nil {
+					return entries, err
+				}
+				e.last_mod_time = i.(time.Time)
 			case 0xb:
+				d := DateType{}
+				data := payload[offset : offset+field_size]
 				offset += field_size
+				i, err := d.Decode(data)
+				if err != nil {
+					return entries, err
+				}
+				e.last_acc_time = i.(time.Time)
 			case 0xc:
+				d := DateType{}
+				data := payload[offset : offset+field_size]
 				offset += field_size
+				i, err := d.Decode(data)
+				if err != nil {
+					return entries, err
+				}
+				e.expiration_time = i.(time.Time)
 			case 0xd:
 				s := StringType{}
 				data := payload[offset : offset+field_size]
