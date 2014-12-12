@@ -15,6 +15,7 @@ import (
 	"time"
 
 	"github.com/davecgh/go-spew/spew"
+	"golang.org/x/crypto/ssh/terminal"
 )
 
 const SYS_USR_ID = uint32(0)
@@ -124,13 +125,13 @@ type Metadata struct {
 
 type KeepassXDatabase struct {
 	*Metadata
-	password string
+	password []byte
 	keyfile  string
 	payload  []byte
 	groupIdx map[uint32]*Group
 }
 
-func NewKeepassXDatabase(password, keyfile string) (*KeepassXDatabase, error) {
+func NewKeepassXDatabase(password []byte, keyfile string) (*KeepassXDatabase, error) {
 	return &KeepassXDatabase{
 		Metadata: new(Metadata),
 		password: password,
@@ -220,7 +221,7 @@ func (k *KeepassXDatabase) decryptPayload(content []byte, key []byte,
 
 func (k *KeepassXDatabase) calculateKey() ([]byte, error) {
 	// TODO: support keyfile
-	key := Sha256([]byte(k.password))
+	key := Sha256(k.password)
 	cipher, err := aes.NewCipher(k.seed2[:])
 	if err != nil {
 		return key, err
@@ -500,12 +501,14 @@ func (k *KeepassXDatabase) ReadFrom(r io.Reader) (int64, error) {
 
 func main() {
 	path := os.Args[1]
-	var password, keyfile string
+	var keyfile string
 	if len(os.Args) > 2 {
-		password = os.Args[2]
+		keyfile = os.Args[2]
 	}
-	if len(os.Args) > 3 {
-		keyfile = os.Args[3]
+	fmt.Print("Password: ")
+	password, err := terminal.ReadPassword(int(os.Stdin.Fd()))
+	if err != nil {
+		log.Fatalf("%v", err)
 	}
 	f, err := os.OpenFile(path, os.O_RDONLY, 0)
 	if err != nil {
