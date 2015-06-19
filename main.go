@@ -35,6 +35,8 @@ var EncryptionTypes = map[string]uint32{
 	"TwoFish":  8,
 }
 
+var ParseError = errors.New("unable to parse payload")
+
 type Grouper interface {
 	Decode(payload []byte) (interface{}, error)
 }
@@ -236,13 +238,18 @@ func (k *KeepassXDatabase) calculateKey() ([]byte, error) {
 
 func (k *KeepassXDatabase) parsePayload(payload []byte) error {
 	groups, offset, err := k.parseGroups(payload)
-	spew.Dump(groups)
+	if err != nil {
+		return err
+	}
 	for i := 0; i < len(groups); i++ {
 		k.groupIdx[groups[i].id] = &groups[i]
 	}
 	entries, err := k.parseEntries(payload[offset:])
+	if err != nil {
+		return err
+	}
 	spew.Dump(entries)
-	return err
+	return nil
 }
 
 func (k *KeepassXDatabase) getGroup(id uint32) (*Group, error) {
@@ -416,6 +423,9 @@ func (k *KeepassXDatabase) parseGroups(payload []byte) ([]Group, int, error) {
 		for {
 			field_type := binary.LittleEndian.Uint16(payload[offset : offset+2])
 			offset += 2
+			if offset+4 > len(payload) {
+				return nil, 0, ParseError
+			}
 			field_size := int(binary.LittleEndian.Uint32(payload[offset : offset+4]))
 			offset += 4
 			switch field_type {
@@ -491,7 +501,6 @@ func (k *KeepassXDatabase) ReadFrom(r io.Reader) (int64, error) {
 	if err != nil {
 		return n, err
 	}
-	spew.Dump(payload)
 	err = k.parsePayload(payload)
 	if err != nil {
 		return n, err
