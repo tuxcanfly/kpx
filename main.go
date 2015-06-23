@@ -14,7 +14,6 @@ import (
 	"strings"
 	"time"
 
-	"github.com/davecgh/go-spew/spew"
 	"golang.org/x/crypto/ssh/terminal"
 )
 
@@ -248,7 +247,9 @@ func (k *KeepassXDatabase) parsePayload(payload []byte) error {
 	if err != nil {
 		return err
 	}
-	spew.Dump(entries)
+	for i, entry := range entries {
+		fmt.Printf("%v |  %v |  %v\n", i, entry.title, entry.url)
+	}
 	return nil
 }
 
@@ -519,6 +520,7 @@ func main() {
 	if err != nil {
 		log.Fatalf("%v", err)
 	}
+	fmt.Print("\n")
 	f, err := os.OpenFile(path, os.O_RDONLY, 0)
 	if err != nil {
 		log.Fatalf("%v", err)
