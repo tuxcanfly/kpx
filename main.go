@@ -235,22 +235,23 @@ func (k *KeepassXDatabase) calculateKey() ([]byte, error) {
 	return Sha256(append(k.seed[:], key...)), nil
 }
 
-func (k *KeepassXDatabase) parsePayload(payload []byte) error {
+func (k *KeepassXDatabase) parsePayload(payload []byte) (map[uint32][]Entry, error) {
 	groups, offset, err := k.parseGroups(payload)
 	if err != nil {
-		return err
+		return nil, err
 	}
 	for i := 0; i < len(groups); i++ {
 		k.groupIdx[groups[i].id] = &groups[i]
 	}
 	entries, err := k.parseEntries(payload[offset:])
 	if err != nil {
-		return err
+		return nil, err
 	}
-	for i, entry := range entries {
-		fmt.Printf("%v |  %v |  %v\n", i, entry.title, entry.url)
+	results := make(map[uint32][]Entry)
+	for _, entry := range entries {
+		results[entry.groupid] = append(results[entry.groupid], entry)
 	}
-	return nil
+	return results, nil
 }
 
 func (k *KeepassXDatabase) getGroup(id uint32) (*Group, error) {
@@ -502,9 +503,20 @@ func (k *KeepassXDatabase) ReadFrom(r io.Reader) (int64, error) {
 	if err != nil {
 		return n, err
 	}
-	err = k.parsePayload(payload)
+	results, err := k.parsePayload(payload)
 	if err != nil {
 		return n, err
+	}
+	for id, entries := range results {
+		group, err := k.getGroup(id)
+		if err != nil {
+			return n, err
+		}
+		fmt.Printf("===== %v ======\n", group.name)
+		for i, entry := range entries {
+			fmt.Printf("%v |  %v |  %v\n", i, entry.title, entry.url)
+		}
+		fmt.Printf("===== x ======\n")
 	}
 	return n, err
 }
