@@ -423,11 +423,11 @@ func (k *KeepassXDatabase) parseGroups(payload []byte) ([]Group, int, error) {
 		var g Group
 	out:
 		for {
-			field_type := binary.LittleEndian.Uint16(payload[offset : offset+2])
-			offset += 2
-			if offset+4 > len(payload) {
+			if offset+2 > len(payload) {
 				return nil, 0, ParseError
 			}
+			field_type := binary.LittleEndian.Uint16(payload[offset : offset+2])
+			offset += 2
 			field_size := int(binary.LittleEndian.Uint32(payload[offset : offset+4]))
 			offset += 4
 			switch field_type {
