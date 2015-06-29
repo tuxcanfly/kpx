@@ -522,22 +522,28 @@ func (k *KeepassXDatabase) ReadFrom(r io.Reader) (int64, error) {
 }
 
 func main() {
-	path := os.Args[1]
+	var path string
+	if len(os.Args) > 1 {
+		path = os.Args[1]
+	}
+	if path == "" {
+		log.Fatalf("Usage: kpx <path/to/keepass.kdb>")
+	}
 	var keyfile string
 	if len(os.Args) > 2 {
 		keyfile = os.Args[2]
 	}
+	f, err := os.OpenFile(path, os.O_RDONLY, 0)
+	if err != nil {
+		log.Fatalf("%v", err)
+	}
+	defer f.Close()
 	fmt.Print("Password: ")
 	password, err := terminal.ReadPassword(int(os.Stdin.Fd()))
 	if err != nil {
 		log.Fatalf("%v", err)
 	}
 	fmt.Print("\n")
-	f, err := os.OpenFile(path, os.O_RDONLY, 0)
-	if err != nil {
-		log.Fatalf("%v", err)
-	}
-	defer f.Close()
 	db, err := NewKeepassXDatabase(password, keyfile)
 	if err != nil {
 		log.Fatalf("%v", err)
