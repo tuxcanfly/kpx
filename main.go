@@ -529,6 +529,9 @@ func main() {
 	if path == "" {
 		log.Fatalf("Usage: kpx <path/to/keepass.kdb>")
 	}
+	if !strings.HasSuffix(path, ".kdb") {
+		log.Fatalf("unknown file format")
+	}
 	var keyfile string
 	if len(os.Args) > 2 {
 		keyfile = os.Args[2]
