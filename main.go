@@ -546,7 +546,7 @@ func main() {
 	if err != nil {
 		log.Fatalf("%v", err)
 	}
-	fmt.Print("\n")
+	fmt.Print("\n\n")
 	db, err := NewKeepassXDatabase(password, keyfile)
 	if err != nil {
 		log.Fatalf("%v", err)
