@@ -514,7 +514,7 @@ func (k *KeepassXDatabase) ReadFrom(r io.Reader) (int64, error) {
 		}
 		fmt.Printf("===== %v ======\n", group.name)
 		for i, entry := range entries {
-			fmt.Printf("%v |  %v |  %v\n", i, entry.title, entry.url)
+			fmt.Printf("%v |  %v | %v |  %v\n", entry.id, i, entry.title, entry.url)
 		}
 		fmt.Printf("===== x ======\n")
 	}
@@ -546,7 +546,7 @@ func main() {
 	if err != nil {
 		log.Fatalf("%v", err)
 	}
-	fmt.Print("\n\n")
+	fmt.Print("\n")
 	db, err := NewKeepassXDatabase(password, keyfile)
 	if err != nil {
 		log.Fatalf("%v", err)
