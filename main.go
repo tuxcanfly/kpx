@@ -526,7 +526,7 @@ func main() {
 	if len(os.Args) > 1 {
 		path = os.Args[1]
 	}
-	if path == "" {
+	if path == "" || path == "-h" || path == "--help" {
 		log.Fatalf("Usage: kpx <path/to/keepass.kdb>")
 	}
 	if !strings.HasSuffix(path, ".kdb") {
