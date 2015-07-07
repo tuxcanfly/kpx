@@ -25,6 +25,8 @@ func Sha256(k []byte) []byte {
 	return hash.Sum(nil)
 }
 
+var ErrInvalidEncryptionFlag error
+
 var EncryptionTypes = map[string]uint32{
 	// TODO: Support these
 	//"SHA2":     1,
@@ -196,13 +198,13 @@ func (m *Metadata) ReadFrom(r io.Reader) (int64, error) {
 	return n64, err
 }
 
-func getEncryptionFlag(flag uint32) string {
+func getEncryptionFlag(flag uint32) (string, error) {
 	for k, v := range EncryptionTypes {
 		if v&flag != 0 {
-			return k
+			return k, nil
 		}
 	}
-	return ""
+	return "", ErrInvalidEncryptionFlag
 }
 
 func (k *KeepassXDatabase) decryptPayload(content []byte, key []byte,
@@ -494,7 +496,10 @@ func (k *KeepassXDatabase) ReadFrom(r io.Reader) (int64, error) {
 	if err != nil {
 		return n, err
 	}
-	encryption_type := getEncryptionFlag(k.flags)
+	encryption_type, err := getEncryptionFlag(k.flags)
+	if err != nil {
+		return n, err
+	}
 	key, err := k.calculateKey()
 	if err != nil {
 		return n, err
