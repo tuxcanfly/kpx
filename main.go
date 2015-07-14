@@ -532,7 +532,8 @@ func main() {
 		path = os.Args[1]
 	}
 	if path == "" || path == "-h" || path == "--help" {
-		log.Fatalf("Usage: kpx <path/to/keepass.kdb>")
+		log.Printf("Usage: kpx <path/to/keepass.kdb>")
+		return
 	}
 	if !strings.HasSuffix(path, ".kdb") {
 		log.Fatalf("unknown file format")
