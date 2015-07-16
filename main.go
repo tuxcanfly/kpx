@@ -11,6 +11,7 @@ import (
 	"io/ioutil"
 	"log"
 	"os"
+	"os/signal"
 	"strings"
 	"time"
 
@@ -547,6 +548,10 @@ func main() {
 		log.Fatalf("%v", err)
 	}
 	defer f.Close()
+
+	c := make(chan os.Signal, 1)
+	signal.Notify(c, os.Interrupt)
+
 	fmt.Print("Password: ")
 	password, err := terminal.ReadPassword(int(os.Stdin.Fd()))
 	if err != nil {
