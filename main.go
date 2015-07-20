@@ -39,10 +39,6 @@ var EncryptionTypes = map[string]uint32{
 
 var ParseError = errors.New("unable to parse payload")
 
-type Grouper interface {
-	Decode(payload []byte) (interface{}, error)
-}
-
 type BaseType struct{}
 
 func (b BaseType) Decode(payload []byte) (interface{}, error) {
