@@ -41,44 +41,44 @@ var ParseError = errors.New("unable to parse payload")
 
 type BaseType struct{}
 
-func (b BaseType) Decode(payload []byte) (interface{}, error) {
-	return payload, nil
+func (b BaseType) Decode(payload []byte) interface{} {
+	return payload
 }
 
 type StringType struct{}
 
-func (s StringType) Decode(payload []byte) (interface{}, error) {
-	return strings.TrimRight(string(payload[:]), "\x00"), nil
+func (s StringType) Decode(payload []byte) interface{} {
+	return strings.TrimRight(string(payload[:]), "\x00")
 }
 
 type IntegerType struct{}
 
-func (i IntegerType) Decode(payload []byte) (interface{}, error) {
-	return binary.LittleEndian.Uint32(payload), nil
+func (i IntegerType) Decode(payload []byte) interface{} {
+	return binary.LittleEndian.Uint32(payload)
 }
 
 type ShortType struct{}
 
-func (s ShortType) Decode(payload []byte) (interface{}, error) {
-	return binary.LittleEndian.Uint16(payload), nil
+func (s ShortType) Decode(payload []byte) interface{} {
+	return binary.LittleEndian.Uint16(payload)
 }
 
 type UUIDType struct{}
 
-func (u UUIDType) Decode(payload []byte) (interface{}, error) {
-	return strings.TrimRight(string(payload[:]), "\x00"), nil
+func (u UUIDType) Decode(payload []byte) interface{} {
+	return strings.TrimRight(string(payload[:]), "\x00")
 }
 
 type DateType struct{}
 
-func (d DateType) Decode(payload []byte) (interface{}, error) {
+func (d DateType) Decode(payload []byte) interface{} {
 	year := int((uint16(payload[0]) << 6) | (uint16(payload[1]) >> 2))
 	month := int(((payload[1] & 0x00000003) << 2) | (payload[2] >> 6))
 	day := int((payload[2] >> 1) & 0x0000001F)
 	hour := int(((payload[2] & 0x00000001) << 4) | (payload[3] >> 4))
 	minutes := int(((payload[3] & 0x0000000F) << 2) | (payload[4] >> 6))
 	seconds := int(payload[4] & 0x0000003F)
-	return time.Date(year, time.Month(month), day, hour, minutes, seconds, 0, time.UTC), nil
+	return time.Date(year, time.Month(month), day, hour, minutes, seconds, 0, time.UTC)
 }
 
 type Group struct {
@@ -277,19 +277,13 @@ func (k *KeepassXDatabase) parseEntries(payload []byte) ([]Entry, error) {
 				s := IntegerType{}
 				data := payload[offset : offset+field_size]
 				offset += field_size
-				i, err := s.Decode(data)
-				if err != nil {
-					return entries, err
-				}
+				i := s.Decode(data)
 				e.id = i.(uint32)
 			case 0x2:
 				s := IntegerType{}
 				data := payload[offset : offset+field_size]
 				offset += field_size
-				i, err := s.Decode(data)
-				if err != nil {
-					return entries, err
-				}
+				i := s.Decode(data)
 				e.groupid = i.(uint32)
 				group, err := k.getGroup(e.groupid)
 				if err != nil {
@@ -300,109 +294,73 @@ func (k *KeepassXDatabase) parseEntries(payload []byte) ([]Entry, error) {
 				s := IntegerType{}
 				data := payload[offset : offset+field_size]
 				offset += field_size
-				i, err := s.Decode(data)
-				if err != nil {
-					return entries, err
-				}
+				i := s.Decode(data)
 				e.imageid = i.(uint32)
 			case 0x4:
 				s := StringType{}
 				data := payload[offset : offset+field_size]
 				offset += field_size
-				i, err := s.Decode(data)
-				if err != nil {
-					return entries, err
-				}
+				i := s.Decode(data)
 				e.title = i.(string)
 			case 0x5:
 				s := StringType{}
 				data := payload[offset : offset+field_size]
 				offset += field_size
-				i, err := s.Decode(data)
-				if err != nil {
-					return entries, err
-				}
+				i := s.Decode(data)
 				e.url = i.(string)
 			case 0x6:
 				s := StringType{}
 				data := payload[offset : offset+field_size]
 				offset += field_size
-				i, err := s.Decode(data)
-				if err != nil {
-					return entries, err
-				}
+				i := s.Decode(data)
 				e.username = i.(string)
 			case 0x7:
 				s := StringType{}
 				data := payload[offset : offset+field_size]
 				offset += field_size
-				i, err := s.Decode(data)
-				if err != nil {
-					return entries, err
-				}
+				i := s.Decode(data)
 				e.password = i.(string)
 			case 0x8:
 				s := StringType{}
 				data := payload[offset : offset+field_size]
 				offset += field_size
-				i, err := s.Decode(data)
-				if err != nil {
-					return entries, err
-				}
+				i := s.Decode(data)
 				e.notes = i.(string)
 			case 0x9:
 				d := DateType{}
 				data := payload[offset : offset+field_size]
 				offset += field_size
-				i, err := d.Decode(data)
-				if err != nil {
-					return entries, err
-				}
+				i := d.Decode(data)
 				e.creation_time = i.(time.Time)
 			case 0xa:
 				d := DateType{}
 				data := payload[offset : offset+field_size]
 				offset += field_size
-				i, err := d.Decode(data)
-				if err != nil {
-					return entries, err
-				}
+				i := d.Decode(data)
 				e.last_mod_time = i.(time.Time)
 			case 0xb:
 				d := DateType{}
 				data := payload[offset : offset+field_size]
 				offset += field_size
-				i, err := d.Decode(data)
-				if err != nil {
-					return entries, err
-				}
+				i := d.Decode(data)
 				e.last_acc_time = i.(time.Time)
 			case 0xc:
 				d := DateType{}
 				data := payload[offset : offset+field_size]
 				offset += field_size
-				i, err := d.Decode(data)
-				if err != nil {
-					return entries, err
-				}
+				i := d.Decode(data)
 				e.expiration_time = i.(time.Time)
 			case 0xd:
 				s := StringType{}
 				data := payload[offset : offset+field_size]
 				offset += field_size
-				i, err := s.Decode(data)
-				if err != nil {
-					return entries, err
-				}
+				i := s.Decode(data)
 				e.binary_desc = i.(string)
 			case 0xe:
 				b := BaseType{}
 				data := payload[offset : offset+field_size]
 				offset += field_size
-				i, err := b.Decode(data)
-				if err != nil {
-					return entries, err
-				}
+				i := b.Decode(data)
 				e.binary_data = i.([]byte)
 			case 0xffff:
 				break out
@@ -434,46 +392,31 @@ func (k *KeepassXDatabase) parseGroups(payload []byte) ([]Group, int, error) {
 				s := IntegerType{}
 				data := payload[offset : offset+field_size]
 				offset += field_size
-				i, err := s.Decode(data)
-				if err != nil {
-					return groups, offset, err
-				}
+				i := s.Decode(data)
 				g.id = i.(uint32)
 			case 0x2:
 				s := StringType{}
 				data := payload[offset : offset+field_size]
 				offset += field_size
-				i, err := s.Decode(data)
-				if err != nil {
-					return groups, offset, err
-				}
+				i := s.Decode(data)
 				g.name = i.(string)
 			case 0x7:
 				s := IntegerType{}
 				data := payload[offset : offset+field_size]
 				offset += field_size
-				i, err := s.Decode(data)
-				if err != nil {
-					return groups, offset, err
-				}
+				i := s.Decode(data)
 				g.imageid = i.(uint32)
 			case 0x8:
 				s := ShortType{}
 				data := payload[offset : offset+field_size]
 				offset += field_size
-				i, err := s.Decode(data)
-				if err != nil {
-					return groups, offset, err
-				}
+				i := s.Decode(data)
 				g.level = i.(uint16)
 			case 0x9:
 				s := IntegerType{}
 				data := payload[offset : offset+field_size]
 				offset += field_size
-				i, err := s.Decode(data)
-				if err != nil {
-					return groups, offset, err
-				}
+				i := s.Decode(data)
 				g.flags = i.(uint32)
 			case 0xffff:
 				break out
