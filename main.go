@@ -47,19 +47,19 @@ func (b BaseType) Decode(payload []byte) interface{} {
 
 type StringType struct{}
 
-func (s StringType) Decode(payload []byte) interface{} {
+func (s StringType) Decode(payload []byte) string {
 	return strings.TrimRight(string(payload[:]), "\x00")
 }
 
 type IntegerType struct{}
 
-func (i IntegerType) Decode(payload []byte) interface{} {
+func (i IntegerType) Decode(payload []byte) uint32 {
 	return binary.LittleEndian.Uint32(payload)
 }
 
 type ShortType struct{}
 
-func (s ShortType) Decode(payload []byte) interface{} {
+func (s ShortType) Decode(payload []byte) uint16 {
 	return binary.LittleEndian.Uint16(payload)
 }
 
@@ -277,14 +277,12 @@ func (k *KeepassXDatabase) parseEntries(payload []byte) ([]Entry, error) {
 				s := IntegerType{}
 				data := payload[offset : offset+field_size]
 				offset += field_size
-				i := s.Decode(data)
-				e.id = i.(uint32)
+				e.id = s.Decode(data)
 			case 0x2:
 				s := IntegerType{}
 				data := payload[offset : offset+field_size]
 				offset += field_size
-				i := s.Decode(data)
-				e.groupid = i.(uint32)
+				e.groupid = s.Decode(data)
 				group, err := k.getGroup(e.groupid)
 				if err != nil {
 					group = nil
@@ -294,38 +292,32 @@ func (k *KeepassXDatabase) parseEntries(payload []byte) ([]Entry, error) {
 				s := IntegerType{}
 				data := payload[offset : offset+field_size]
 				offset += field_size
-				i := s.Decode(data)
-				e.imageid = i.(uint32)
+				e.imageid = s.Decode(data)
 			case 0x4:
 				s := StringType{}
 				data := payload[offset : offset+field_size]
 				offset += field_size
-				i := s.Decode(data)
-				e.title = i.(string)
+				e.title = s.Decode(data)
 			case 0x5:
 				s := StringType{}
 				data := payload[offset : offset+field_size]
 				offset += field_size
-				i := s.Decode(data)
-				e.url = i.(string)
+				e.url = s.Decode(data)
 			case 0x6:
 				s := StringType{}
 				data := payload[offset : offset+field_size]
 				offset += field_size
-				i := s.Decode(data)
-				e.username = i.(string)
+				e.username = s.Decode(data)
 			case 0x7:
 				s := StringType{}
 				data := payload[offset : offset+field_size]
 				offset += field_size
-				i := s.Decode(data)
-				e.password = i.(string)
+				e.password = s.Decode(data)
 			case 0x8:
 				s := StringType{}
 				data := payload[offset : offset+field_size]
 				offset += field_size
-				i := s.Decode(data)
-				e.notes = i.(string)
+				e.notes = s.Decode(data)
 			case 0x9:
 				d := DateType{}
 				data := payload[offset : offset+field_size]
@@ -354,8 +346,7 @@ func (k *KeepassXDatabase) parseEntries(payload []byte) ([]Entry, error) {
 				s := StringType{}
 				data := payload[offset : offset+field_size]
 				offset += field_size
-				i := s.Decode(data)
-				e.binary_desc = i.(string)
+				e.binary_desc = s.Decode(data)
 			case 0xe:
 				b := BaseType{}
 				data := payload[offset : offset+field_size]
@@ -392,32 +383,27 @@ func (k *KeepassXDatabase) parseGroups(payload []byte) ([]Group, int, error) {
 				s := IntegerType{}
 				data := payload[offset : offset+field_size]
 				offset += field_size
-				i := s.Decode(data)
-				g.id = i.(uint32)
+				g.id = s.Decode(data)
 			case 0x2:
 				s := StringType{}
 				data := payload[offset : offset+field_size]
 				offset += field_size
-				i := s.Decode(data)
-				g.name = i.(string)
+				g.name = s.Decode(data)
 			case 0x7:
 				s := IntegerType{}
 				data := payload[offset : offset+field_size]
 				offset += field_size
-				i := s.Decode(data)
-				g.imageid = i.(uint32)
+				g.imageid = s.Decode(data)
 			case 0x8:
 				s := ShortType{}
 				data := payload[offset : offset+field_size]
 				offset += field_size
-				i := s.Decode(data)
-				g.level = i.(uint16)
+				g.level = s.Decode(data)
 			case 0x9:
 				s := IntegerType{}
 				data := payload[offset : offset+field_size]
 				offset += field_size
-				i := s.Decode(data)
-				g.flags = i.(uint32)
+				g.flags = s.Decode(data)
 			case 0xffff:
 				break out
 			}
