@@ -145,54 +145,87 @@ func (m *Metadata) ReadFrom(r io.Reader) (int64, error) {
 	uint32Bytes := buf[:4]
 
 	n, err := io.ReadFull(r, uint32Bytes)
+	if err != nil {
+		return 0, err
+	}
 	n64 := int64(n)
 	m.signature1 = binary.LittleEndian.Uint32(uint32Bytes)
 
 	n, err = io.ReadFull(r, uint32Bytes)
+	if err != nil {
+		return 0, err
+	}
 	n64 += int64(n)
 	m.signature2 = binary.LittleEndian.Uint32(uint32Bytes)
 
 	n, err = io.ReadFull(r, uint32Bytes)
+	if err != nil {
+		return 0, err
+	}
 	n64 += int64(n)
 	m.flags = binary.LittleEndian.Uint32(uint32Bytes)
 
 	n, err = io.ReadFull(r, uint32Bytes)
+	if err != nil {
+		return 0, err
+	}
 	n64 += int64(n)
 	m.version = binary.LittleEndian.Uint32(uint32Bytes)
 
 	var seed [16]byte
 	n, err = io.ReadFull(r, seed[:])
+	if err != nil {
+		return 0, err
+	}
 	n64 += int64(n)
 	m.seed = seed
 
 	var encryption [16]byte
 	n, err = io.ReadFull(r, encryption[:])
+	if err != nil {
+		return 0, err
+	}
 	n64 += int64(n)
 	m.iv = encryption
 
 	n, err = io.ReadFull(r, uint32Bytes)
+	if err != nil {
+		return 0, err
+	}
 	n64 += int64(n)
 	m.groups = binary.LittleEndian.Uint32(uint32Bytes)
 
 	n, err = io.ReadFull(r, uint32Bytes)
+	if err != nil {
+		return 0, err
+	}
 	n64 += int64(n)
 	m.entries = binary.LittleEndian.Uint32(uint32Bytes)
 
 	var hash [32]byte
 	n, err = io.ReadFull(r, hash[:])
+	if err != nil {
+		return 0, err
+	}
 	n64 += int64(n)
 	m.hash = hash
 
 	var seed2 [32]byte
 	n, err = io.ReadFull(r, seed2[:])
+	if err != nil {
+		return 0, err
+	}
 	n64 += int64(n)
 	m.seed2 = seed2
 
 	n, err = io.ReadFull(r, uint32Bytes)
+	if err != nil {
+		return 0, err
+	}
 	n64 += int64(n)
 	m.rounds = binary.LittleEndian.Uint32(uint32Bytes)
 
-	return n64, err
+	return n64, nil
 }
 
 func getEncryptionFlag(flag uint32) (string, error) {
