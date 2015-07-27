@@ -502,10 +502,10 @@ func main() {
 		keyfile = os.Args[2]
 	}
 	f, err := os.OpenFile(path, os.O_RDONLY, 0)
+	defer f.Close()
 	if err != nil {
 		log.Fatalf("%v", err)
 	}
-	defer f.Close()
 
 	c := make(chan os.Signal, 1)
 	signal.Notify(c, os.Interrupt)
