@@ -18,6 +18,8 @@ import (
 	"golang.org/x/crypto/ssh/terminal"
 )
 
+// SYS_USR_ID is a reserved  entry id
+// It is used to skip processing system entries
 const SYS_USR_ID = uint32(0)
 
 func Sha256(k []byte) []byte {
