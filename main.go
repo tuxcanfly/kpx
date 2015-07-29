@@ -28,6 +28,7 @@ func Sha256(k []byte) []byte {
 	return hash.Sum(nil)
 }
 
+// ErrInvalidEncryptionFlag is returned on an invalid encryption flag
 var ErrInvalidEncryptionFlag error
 
 var EncryptionTypes = map[string]uint32{
