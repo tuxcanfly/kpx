@@ -84,6 +84,7 @@ func (d DateType) Decode(payload []byte) interface{} {
 	return time.Date(year, time.Month(month), day, hour, minutes, seconds, 0, time.UTC)
 }
 
+// Group represents a KeepassX entries group.
 type Group struct {
 	ignored bool
 	id      uint32
@@ -93,6 +94,7 @@ type Group struct {
 	flags   uint32
 }
 
+// Entry represents a KeepassX entry.
 type Entry struct {
 	ignored         bool
 	id              uint32
@@ -112,6 +114,7 @@ type Entry struct {
 	group           *Group
 }
 
+// Metadata is the metadata stored in the KeepassX database.
 type Metadata struct {
 	signature1 uint32
 	signature2 uint32
@@ -126,6 +129,7 @@ type Metadata struct {
 	rounds     uint32
 }
 
+// KeepassXDatabase is the KeepassX database.
 type KeepassXDatabase struct {
 	*Metadata
 	password []byte
