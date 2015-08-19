@@ -138,6 +138,8 @@ type KeepassXDatabase struct {
 	groupIdx map[uint32]*Group
 }
 
+// NewKeepassXDatabase returns an instance of KeepassXDatabase from the given
+// password and keyfile
 func NewKeepassXDatabase(password []byte, keyfile string) (*KeepassXDatabase, error) {
 	return &KeepassXDatabase{
 		Metadata: new(Metadata),
