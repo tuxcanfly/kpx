@@ -149,6 +149,8 @@ func NewKeepassXDatabase(password []byte, keyfile string) (*KeepassXDatabase, er
 	}, nil
 }
 
+// ReadFrom reads the given reader and loads the keepassx database file into
+// memory.
 func (m *Metadata) ReadFrom(r io.Reader) (int64, error) {
 	var buf [4]byte
 	uint32Bytes := buf[:4]
