@@ -40,6 +40,7 @@ var EncryptionTypes = map[string]uint32{
 	"TwoFish":  8,
 }
 
+// ParseError is raised when there is an error during parsing of the payload
 var ParseError = errors.New("unable to parse payload")
 
 type BaseType struct{}
