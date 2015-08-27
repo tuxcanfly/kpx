@@ -263,6 +263,7 @@ func (k *KeepassXDatabase) decryptPayload(content []byte, key []byte,
 	return data, err
 }
 
+// calculateKey calculates the key required to decrypt the payload.
 func (k *KeepassXDatabase) calculateKey() ([]byte, error) {
 	// TODO: support keyfile
 	key := Sha256(k.password)
