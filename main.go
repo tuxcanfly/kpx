@@ -137,6 +137,7 @@ type KeepassXDatabase struct {
 	keyfile  string
 	payload  []byte
 	groupIdx map[uint32]*Group
+	results  map[uint32][]Entry
 }
 
 // NewKeepassXDatabase returns an instance of KeepassXDatabase from the given
@@ -485,17 +486,7 @@ func (k *KeepassXDatabase) ReadFrom(r io.Reader) (int64, error) {
 	if err != nil {
 		return n, err
 	}
-	for id, entries := range results {
-		group, err := k.getGroup(id)
-		if err != nil {
-			return n, err
-		}
-		fmt.Printf("===== %v ======\n", group.name)
-		for i, entry := range entries {
-			fmt.Printf("%v |  %v | %v |  %v\n", entry.id, i, entry.title, entry.url)
-		}
-		fmt.Printf("===== x ======\n")
-	}
+	k.results = results
 	return n, err
 }
 
@@ -538,5 +529,16 @@ func main() {
 	_, err = db.ReadFrom(f)
 	if err != nil {
 		log.Fatalf("%v", err)
+	}
+	for id, entries := range db.results {
+		group, err := db.getGroup(id)
+		if err != nil {
+			log.Fatalf("%v", err)
+		}
+		fmt.Printf("===== %v ======\n", group.name)
+		for i, entry := range entries {
+			fmt.Printf("%v |  %v | %v |  %v\n", entry.id, i, entry.title, entry.url)
+		}
+		fmt.Printf("===== x ======\n")
 	}
 }
