@@ -530,6 +530,7 @@ func main() {
 	if err != nil {
 		log.Fatalf("%v", err)
 	}
+	// Write the results to  stdout
 	for id, entries := range db.results {
 		group, err := db.getGroup(id)
 		if err != nil {
