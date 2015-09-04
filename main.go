@@ -22,6 +22,7 @@ import (
 // It is used to skip processing system entries
 const SYS_USR_ID = uint32(0)
 
+// Sha256 returns sha256 hash of the given data
 func Sha256(k []byte) []byte {
 	hash := sha256.New()
 	hash.Write(k)
