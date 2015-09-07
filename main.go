@@ -254,7 +254,9 @@ func (k *KeepassXDatabase) decryptPayload(content []byte, key []byte,
 	encryption_type string, iv [16]byte) ([]byte, error) {
 	data := make([]byte, len(content))
 	if encryption_type != "Rijndael" {
-		return data, errors.New(fmt.Sprintf("Unsupported encryption type: %s", encryption_type))
+		// Only Rijndael is supported atm.
+		return data, errors.New(fmt.Sprintf("Unsupported encryption type: %s",
+			encryption_type))
 	}
 	decryptor, err := aes.NewCipher(key)
 	if err != nil {
