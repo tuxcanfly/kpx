@@ -406,6 +406,7 @@ func (k *KeepassXDatabase) parseEntries(payload []byte) ([]Entry, error) {
 				break out
 			}
 		}
+		// SYS_USR_ID is reserved for system entries
 		if e.id != SYS_USR_ID {
 			entries = append(entries, e)
 		}
