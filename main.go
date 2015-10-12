@@ -98,14 +98,15 @@ type Group struct {
 
 // Entry represents a KeepassX entry.
 type Entry struct {
-	ignored         bool
 	id              uint32
 	groupid         uint32
+	group           *Group
 	imageid         uint32
 	title           string
 	url             string
 	username        string
 	password        string
+	ignored         bool
 	notes           string
 	creation_time   time.Time
 	last_mod_time   time.Time
@@ -113,7 +114,6 @@ type Entry struct {
 	expiration_time time.Time
 	binary_desc     string
 	binary_data     []byte
-	group           *Group
 }
 
 // Metadata is the metadata stored in the KeepassX database.
