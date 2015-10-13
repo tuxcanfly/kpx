@@ -421,6 +421,7 @@ func (k *KeepassXDatabase) parseGroups(payload []byte) ([]Group, int, error) {
 		var g Group
 	out:
 		for {
+			// Must be able to read the next two bytes
 			if offset+2 > len(payload) {
 				return nil, 0, ParseError
 			}
