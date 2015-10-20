@@ -262,6 +262,7 @@ func (k *KeepassXDatabase) decryptPayload(content []byte, key []byte,
 	if err != nil {
 		return data, err
 	}
+	// Block mode CBC
 	mode := cipher.NewCBCDecrypter(decryptor, iv[:])
 	mode.CryptBlocks(data, content)
 	return data, err
