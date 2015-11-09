@@ -247,6 +247,7 @@ func getEncryptionFlag(flag uint32) (string, error) {
 			return k, nil
 		}
 	}
+	// invalid flag
 	return "", ErrInvalidEncryptionFlag
 }
 
