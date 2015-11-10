@@ -277,6 +277,7 @@ func (k *KeepassXDatabase) calculateKey() ([]byte, error) {
 	if err != nil {
 		return key, err
 	}
+	// divide key into half and encrypt with cipher
 	for i := 0; i < int(k.rounds); i++ {
 		cipher.Encrypt(key[:16], key[:16])
 		cipher.Encrypt(key[16:], key[16:])
