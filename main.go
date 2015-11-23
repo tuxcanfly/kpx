@@ -241,6 +241,7 @@ func (m *Metadata) ReadFrom(r io.Reader) (int64, error) {
 	return n64, nil
 }
 
+// getEncryptionFlag returns the encryption type flag.
 func getEncryptionFlag(flag uint32) (string, error) {
 	for k, v := range EncryptionTypes {
 		if v&flag != 0 {
