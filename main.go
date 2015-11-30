@@ -504,6 +504,7 @@ func main() {
 	if len(os.Args) > 1 {
 		path = os.Args[1]
 	}
+	// Print help
 	if path == "" || path == "-h" || path == "--help" {
 		log.Printf("Usage: kpx <path/to/keepass.kdb>")
 		return
