@@ -287,6 +287,7 @@ func (k *KeepassXDatabase) calculateKey() ([]byte, error) {
 	return Sha256(append(k.seed[:], key...)), nil
 }
 
+// parsePayload parses the payload and returns the results as a map.
 func (k *KeepassXDatabase) parsePayload(payload []byte) (map[uint32][]Entry, error) {
 	groups, offset, err := k.parseGroups(payload)
 	if err != nil {
