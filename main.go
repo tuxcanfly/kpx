@@ -252,6 +252,7 @@ func getEncryptionFlag(flag uint32) (string, error) {
 	return "", ErrInvalidEncryptionFlag
 }
 
+// decryptPayload decrypts the given payload.
 func (k *KeepassXDatabase) decryptPayload(content []byte, key []byte,
 	encryption_type string, iv [16]byte) ([]byte, error) {
 	data := make([]byte, len(content))
