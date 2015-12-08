@@ -308,6 +308,7 @@ func (k *KeepassXDatabase) parsePayload(payload []byte) (map[uint32][]Entry, err
 	return results, nil
 }
 
+// getGroup returns the group for the given group id.
 func (k *KeepassXDatabase) getGroup(id uint32) (*Group, error) {
 	g, ok := k.groupIdx[id]
 	if ok {
