@@ -317,6 +317,7 @@ func (k *KeepassXDatabase) getGroup(id uint32) (*Group, error) {
 	return nil, errors.New("group not found")
 }
 
+// parseEntries parses the payload and returns an array of entries.
 func (k *KeepassXDatabase) parseEntries(payload []byte) ([]Entry, error) {
 	offset := 0
 	var entries []Entry
