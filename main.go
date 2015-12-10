@@ -514,7 +514,7 @@ func main() {
 		return
 	}
 	if !strings.HasSuffix(path, ".kdb") {
-		log.Fatalf("unknown file format")
+		log.Fatal("unknown file format")
 	}
 	var keyfile string
 	if len(os.Args) > 2 {
