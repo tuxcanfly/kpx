@@ -422,6 +422,7 @@ func (k *KeepassXDatabase) parseEntries(payload []byte) ([]Entry, error) {
 	return entries, nil
 }
 
+// parseGroups parses the given payload and returns an array of groups.
 func (k *KeepassXDatabase) parseGroups(payload []byte) ([]Group, int, error) {
 	offset := 0
 	var groups []Group
