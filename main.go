@@ -32,6 +32,7 @@ func Sha256(k []byte) []byte {
 // ErrInvalidEncryptionFlag is returned on an invalid encryption flag
 var ErrInvalidEncryptionFlag error
 
+// EncryptionTypes maps supported encryption types and the flags
 var EncryptionTypes = map[string]uint32{
 	// TODO: Support these
 	//"SHA2":     1,
