@@ -143,7 +143,7 @@ type KeepassXDatabase struct {
 }
 
 // NewKeepassXDatabase returns an instance of KeepassXDatabase from the given
-// password and keyfile
+// password and keyfile.
 func NewKeepassXDatabase(password []byte, keyfile string) (*KeepassXDatabase, error) {
 	return &KeepassXDatabase{
 		Metadata: new(Metadata),
