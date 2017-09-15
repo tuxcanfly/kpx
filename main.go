@@ -18,9 +18,8 @@ import (
 	"golang.org/x/crypto/ssh/terminal"
 )
 
-// SYS_USR_ID is a reserved  entry id
-// It is used to skip processing system entries
-const SYS_USR_ID = uint32(0)
+// SystemUserID is a reserved id used for processing system entries
+const SystemUserID = uint32(0)
 
 // Sha256 returns sha256 hash of the given data
 func Sha256(k []byte) []byte {
@@ -42,42 +41,30 @@ var EncryptionTypes = map[string]uint32{
 	"TwoFish":  8,
 }
 
-// ParseError is raised when there is an error during parsing of the payload
-var ParseError = errors.New("unable to parse payload")
+// ErrParseFailed is returned when parsing payload fails
+var ErrParseFailed = errors.New("unable to parse payload")
 
-type BaseType struct{}
-
-func (b BaseType) Decode(payload []byte) interface{} {
+func parseBinary(payload []byte) []byte {
 	return payload
 }
 
-type StringType struct{}
-
-func (s StringType) Decode(payload []byte) string {
+func parseString(payload []byte) string {
 	return strings.TrimRight(string(payload[:]), "\x00")
 }
 
-type IntegerType struct{}
-
-func (i IntegerType) Decode(payload []byte) uint32 {
+func parseInt(payload []byte) uint32 {
 	return binary.LittleEndian.Uint32(payload)
 }
 
-type ShortType struct{}
-
-func (s ShortType) Decode(payload []byte) uint16 {
+func parseSmallInt(payload []byte) uint16 {
 	return binary.LittleEndian.Uint16(payload)
 }
 
-type UUIDType struct{}
-
-func (u UUIDType) Decode(payload []byte) interface{} {
+func parseUUID(payload []byte) interface{} {
 	return strings.TrimRight(string(payload[:]), "\x00")
 }
 
-type DateType struct{}
-
-func (d DateType) Decode(payload []byte) interface{} {
+func parseTime(payload []byte) time.Time {
 	year := int((uint16(payload[0]) << 6) | (uint16(payload[1]) >> 2))
 	month := int(((payload[1] & 0x00000003) << 2) | (payload[2] >> 6))
 	day := int((payload[2] >> 1) & 0x0000001F)
@@ -99,22 +86,22 @@ type Group struct {
 
 // Entry represents a KeepassX entry.
 type Entry struct {
-	id              uint32
-	groupid         uint32
-	group           *Group
-	imageid         uint32
-	title           string
-	url             string
-	username        string
-	password        string
-	ignored         bool
-	notes           string
-	creation_time   time.Time
-	last_mod_time   time.Time
-	last_acc_time   time.Time
-	expiration_time time.Time
-	binary_desc     string
-	binary_data     []byte
+	id       uint32
+	groupid  uint32
+	group    *Group
+	imageid  uint32
+	title    string
+	url      string
+	username string
+	password string
+	ignored  bool
+	notes    string
+	created  time.Time
+	modified time.Time
+	accessed time.Time
+	expiry   time.Time
+	binDesc  string
+	binData  []byte
 }
 
 // Metadata is the metadata stored in the KeepassX database.
@@ -242,8 +229,8 @@ func (m *Metadata) ReadFrom(r io.Reader) (int64, error) {
 	return n64, nil
 }
 
-// getEncryptionFlag returns the encryption type flag.
-func getEncryptionFlag(flag uint32) (string, error) {
+// EncryptionFlag returns the encryption type flag.
+func EncryptionFlag(flag uint32) (string, error) {
 	for k, v := range EncryptionTypes {
 		if v&flag != 0 {
 			return k, nil
@@ -255,12 +242,11 @@ func getEncryptionFlag(flag uint32) (string, error) {
 
 // decryptPayload decrypts the given payload.
 func (k *KeepassXDatabase) decryptPayload(content []byte, key []byte,
-	encryption_type string, iv [16]byte) ([]byte, error) {
+	encryptionType string, iv [16]byte) ([]byte, error) {
 	data := make([]byte, len(content))
-	if encryption_type != "Rijndael" {
+	if encryptionType != "Rijndael" {
 		// Only Rijndael is supported atm.
-		return data, errors.New(fmt.Sprintf("Unsupported encryption type: %s",
-			encryption_type))
+		return data, fmt.Errorf("Unsupported encryption type: %s", encryptionType)
 	}
 	decryptor, err := aes.NewCipher(key)
 	if err != nil {
@@ -326,97 +312,78 @@ func (k *KeepassXDatabase) parseEntries(payload []byte) ([]Entry, error) {
 		var e Entry
 	out:
 		for {
-			field_type := binary.LittleEndian.Uint16(payload[offset : offset+2])
+			fieldType := binary.LittleEndian.Uint16(payload[offset : offset+2])
 			offset += 2
-			field_size := int(binary.LittleEndian.Uint32(payload[offset : offset+4]))
+			fieldSize := int(binary.LittleEndian.Uint32(payload[offset : offset+4]))
 			offset += 4
-			switch field_type {
+			switch fieldType {
 			case 0x1:
-				s := IntegerType{}
-				data := payload[offset : offset+field_size]
-				offset += field_size
-				e.id = s.Decode(data)
+				data := payload[offset : offset+fieldSize]
+				offset += fieldSize
+				e.id = parseInt(data)
 			case 0x2:
-				s := IntegerType{}
-				data := payload[offset : offset+field_size]
-				offset += field_size
-				e.groupid = s.Decode(data)
+				data := payload[offset : offset+fieldSize]
+				offset += fieldSize
+				e.groupid = parseInt(data)
 				group, err := k.getGroup(e.groupid)
 				if err != nil {
 					group = nil
 				}
 				e.group = group
 			case 0x3:
-				s := IntegerType{}
-				data := payload[offset : offset+field_size]
-				offset += field_size
-				e.imageid = s.Decode(data)
+				data := payload[offset : offset+fieldSize]
+				offset += fieldSize
+				e.imageid = parseInt(data)
 			case 0x4:
-				s := StringType{}
-				data := payload[offset : offset+field_size]
-				offset += field_size
-				e.title = s.Decode(data)
+				data := payload[offset : offset+fieldSize]
+				offset += fieldSize
+				e.title = parseString(data)
 			case 0x5:
-				s := StringType{}
-				data := payload[offset : offset+field_size]
-				offset += field_size
-				e.url = s.Decode(data)
+				data := payload[offset : offset+fieldSize]
+				offset += fieldSize
+				e.url = parseString(data)
 			case 0x6:
-				s := StringType{}
-				data := payload[offset : offset+field_size]
-				offset += field_size
-				e.username = s.Decode(data)
+				data := payload[offset : offset+fieldSize]
+				offset += fieldSize
+				e.username = parseString(data)
 			case 0x7:
-				s := StringType{}
-				data := payload[offset : offset+field_size]
-				offset += field_size
-				e.password = s.Decode(data)
+				data := payload[offset : offset+fieldSize]
+				offset += fieldSize
+				e.password = parseString(data)
 			case 0x8:
-				s := StringType{}
-				data := payload[offset : offset+field_size]
-				offset += field_size
-				e.notes = s.Decode(data)
+				data := payload[offset : offset+fieldSize]
+				offset += fieldSize
+				e.notes = parseString(data)
 			case 0x9:
-				d := DateType{}
-				data := payload[offset : offset+field_size]
-				offset += field_size
-				i := d.Decode(data)
-				e.creation_time = i.(time.Time)
+				data := payload[offset : offset+fieldSize]
+				offset += fieldSize
+				e.created = parseTime(data)
 			case 0xa:
-				d := DateType{}
-				data := payload[offset : offset+field_size]
-				offset += field_size
-				i := d.Decode(data)
-				e.last_mod_time = i.(time.Time)
+				data := payload[offset : offset+fieldSize]
+				offset += fieldSize
+				e.modified = parseTime(data)
 			case 0xb:
-				d := DateType{}
-				data := payload[offset : offset+field_size]
-				offset += field_size
-				i := d.Decode(data)
-				e.last_acc_time = i.(time.Time)
+				data := payload[offset : offset+fieldSize]
+				offset += fieldSize
+				e.accessed = parseTime(data)
 			case 0xc:
-				d := DateType{}
-				data := payload[offset : offset+field_size]
-				offset += field_size
-				i := d.Decode(data)
-				e.expiration_time = i.(time.Time)
+				data := payload[offset : offset+fieldSize]
+				offset += fieldSize
+				e.expiry = parseTime(data)
 			case 0xd:
-				s := StringType{}
-				data := payload[offset : offset+field_size]
-				offset += field_size
-				e.binary_desc = s.Decode(data)
+				data := payload[offset : offset+fieldSize]
+				offset += fieldSize
+				e.binDesc = parseString(data)
 			case 0xe:
-				b := BaseType{}
-				data := payload[offset : offset+field_size]
-				offset += field_size
-				i := b.Decode(data)
-				e.binary_data = i.([]byte)
+				data := payload[offset : offset+fieldSize]
+				offset += fieldSize
+				e.binData = parseBinary(data)
 			case 0xffff:
 				break out
 			}
 		}
-		// SYS_USR_ID is reserved for system entries
-		if e.id != SYS_USR_ID {
+		// SystemUserID is reserved for system entries
+		if e.id != SystemUserID {
 			entries = append(entries, e)
 		}
 	}
@@ -433,38 +400,33 @@ func (k *KeepassXDatabase) parseGroups(payload []byte) ([]Group, int, error) {
 		for {
 			// Must be able to read the next two bytes
 			if offset+2 > len(payload) {
-				return nil, 0, ParseError
+				return nil, 0, ErrParseFailed
 			}
-			field_type := binary.LittleEndian.Uint16(payload[offset : offset+2])
+			fieldType := binary.LittleEndian.Uint16(payload[offset : offset+2])
 			offset += 2
-			field_size := int(binary.LittleEndian.Uint32(payload[offset : offset+4]))
+			fieldSize := int(binary.LittleEndian.Uint32(payload[offset : offset+4]))
 			offset += 4
-			switch field_type {
+			switch fieldType {
 			case 0x1:
-				s := IntegerType{}
-				data := payload[offset : offset+field_size]
-				offset += field_size
-				g.id = s.Decode(data)
+				data := payload[offset : offset+fieldSize]
+				offset += fieldSize
+				g.id = parseInt(data)
 			case 0x2:
-				s := StringType{}
-				data := payload[offset : offset+field_size]
-				offset += field_size
-				g.name = s.Decode(data)
+				data := payload[offset : offset+fieldSize]
+				offset += fieldSize
+				g.name = parseString(data)
 			case 0x7:
-				s := IntegerType{}
-				data := payload[offset : offset+field_size]
-				offset += field_size
-				g.imageid = s.Decode(data)
+				data := payload[offset : offset+fieldSize]
+				offset += fieldSize
+				g.imageid = parseInt(data)
 			case 0x8:
-				s := ShortType{}
-				data := payload[offset : offset+field_size]
-				offset += field_size
-				g.level = s.Decode(data)
+				data := payload[offset : offset+fieldSize]
+				offset += fieldSize
+				g.level = parseSmallInt(data)
 			case 0x9:
-				s := IntegerType{}
-				data := payload[offset : offset+field_size]
-				offset += field_size
-				g.flags = s.Decode(data)
+				data := payload[offset : offset+fieldSize]
+				offset += fieldSize
+				g.flags = parseInt(data)
 			case 0xffff:
 				break out
 			}
@@ -485,7 +447,7 @@ func (k *KeepassXDatabase) ReadFrom(r io.Reader) (int64, error) {
 	if err != nil {
 		return n, err
 	}
-	encryption_type, err := getEncryptionFlag(k.flags)
+	encryptionType, err := EncryptionFlag(k.flags)
 	if err != nil {
 		return n, err
 	}
@@ -493,7 +455,7 @@ func (k *KeepassXDatabase) ReadFrom(r io.Reader) (int64, error) {
 	if err != nil {
 		return n, err
 	}
-	payload, err := k.decryptPayload(content, key, encryption_type, k.iv)
+	payload, err := k.decryptPayload(content, key, encryptionType, k.iv)
 	if err != nil {
 		return n, err
 	}
